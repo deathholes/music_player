@@ -14,9 +14,10 @@ class MainWindow(QMainWindow):
 	
 		self.currentFile = '/'
 		self.player = QMediaPlayer()
-		self.lastState = -1			#0- stopped, 1- playing 2-paused
+		self.userAction = -1			#0- stopped, 1- playing 2-paused
 		self.player.mediaStatusChanged.connect(self.qmp_mediaStatusChanged)
 		self.player.stateChanged.connect(self.qmp_stateChanged)
+		self.player.positionChanged.connect(self.qmp_positionChanged)
 		self.homeScreen()
 		
 	def homeScreen(self):
@@ -37,7 +38,7 @@ class MainWindow(QMainWindow):
 		controlBar = self.addControls()
 		
 		#need to add both infoscreen and control bar to the central widget.
-		centralWidget = QWidget(self)
+		centralWidget = QWidget()
 		centralWidget.setLayout(controlBar)
 		self.setCentralWidget(centralWidget)
 		
@@ -70,23 +71,47 @@ class MainWindow(QMainWindow):
 		
 	def addControls(self):
 		print('addControls')
+		#Creating layouts
+		controlArea = QVBoxLayout()		#centralWidget
 		controls = QHBoxLayout()
-		playBtn = QPushButton('Play')
-		pauseBtn = QPushButton('Pause')
-		stopBtn = QPushButton('Stop')
+		
+		#creating buttons
+		playBtn = QPushButton('Play')		#play button
+		pauseBtn = QPushButton('Pause')		#pause button
+		stopBtn = QPushButton('Stop')		#stop button
+		
+		#creating seek slider
+		seekSlider = QSlider()
+		seekSlider.setMinimum(0)
+		seekSlider.setMaximum(100)
+		seekSlider.setOrientation(Qt.Horizontal)
+		seekSlider.sliderMoved.connect(self.seekPosition)
+		seekSliderLabel1 = QLabel('0.00')
+		seekSliderLabel2 = QLabel('0.00')
+		seekSliderLayout = QHBoxLayout()
+		seekSliderLayout.addWidget(seekSliderLabel1)
+		seekSliderLayout.addWidget(seekSlider)
+		seekSliderLayout.addWidget(seekSliderLabel2)
+		
 		self.currentFile = '/home/deathholes/Music/jiya_jale.mp3'
-		print(self.player.state())
-		print(self.player.mediaStatus())
+		
+		#Add handler for each button. Not using the default slots.
 		playBtn.clicked.connect(self.playHandler)
 		pauseBtn.clicked.connect(self.pauseHandler)
 		stopBtn.clicked.connect(self.stopHandler)
+		
+		#Adding to the horizontal layout
 		controls.addWidget(playBtn)
 		controls.addWidget(pauseBtn)
 		controls.addWidget(stopBtn)
-		return controls
+		
+		#Adding to the vertical layout
+		controlArea.addLayout(seekSliderLayout)
+		controlArea.addLayout(controls)
+		return controlArea
 	
 	def playHandler(self):
-		self.presentState = 1
+		self.userAction = 1
 		print('playHandler')
 		if self.player.state() == QMediaPlayer.StoppedState :
 			if self.player.mediaStatus() == QMediaPlayer.NoMedia:
@@ -102,12 +127,12 @@ class MainWindow(QMainWindow):
 			self.player.play()
 			
 	def pauseHandler(self):
-		self.presentState = 2
+		self.userAction = 2
 		print('pauseHandler')
 		self.player.pause()
 			
 	def stopHandler(self):
-		self.presentState = 0
+		self.userAction = 0
 		print('stopHandler')
 		if self.player.state() == QMediaPlayer.PlayingState:
 			print('already playing, so stopping')
@@ -132,7 +157,9 @@ class MainWindow(QMainWindow):
 		
 	def qmp_mediaStatusChanged(self):
 		print('media status changed signal catched, signal was : ',self.player.mediaStatus())
-		if self.player.mediaStatus() == QMediaPlayer.LoadedMedia and self.presentState == 1:
+		if self.player.mediaStatus() == QMediaPlayer.LoadedMedia and self.userAction == 1:
+			durationT = self.player.duration()
+			self.centralWidget().layout().itemAt(0).layout().itemAt(2).widget().setText('%d:%02d'%(int(durationT/60000),int((durationT/1000)%60)))
 			self.player.play()
 			
 	
@@ -140,6 +167,20 @@ class MainWindow(QMainWindow):
 		print('QMediaPlayer state changed, new state :',self.player.state())
 		if self.player.state() == QMediaPlayer.StoppedState:
 			self.player.stop()
+			
+	def qmp_positionChanged(self, position):
+		print('QMediaPlayer position changed')
+		#update the position of the seek slider
+		sliderLayout = self.centralWidget().layout().itemAt(0).layout()
+		
+		sliderLayout.itemAt(1).widget().setValue((position/self.player.duration())*100)
+		#update the text label
+		sliderLayout.itemAt(0).widget().setText('%d:%02d'%(int(position/60000),int((position/1000)%60)))
+	
+	def seekPosition(self, position):
+		print(position)
+		if self.player.isSeekable():
+			self.player.setPosition(position * self.player.duration()/100)
 	
 	def fileOpen(self):
 		pass
