@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
 		self.player.mediaStatusChanged.connect(self.qmp_mediaStatusChanged)
 		self.player.stateChanged.connect(self.qmp_stateChanged)
 		self.player.positionChanged.connect(self.qmp_positionChanged)
+		self.player.setVolume(60)
 		self.homeScreen()
 		
 	def homeScreen(self):
@@ -79,6 +80,8 @@ class MainWindow(QMainWindow):
 		playBtn = QPushButton('Play')		#play button
 		pauseBtn = QPushButton('Pause')		#pause button
 		stopBtn = QPushButton('Stop')		#stop button
+		volumeDescBtn = QPushButton('V (-)')#Decrease Volume
+		volumeIncBtn = QPushButton('V (+)')	#Increase Volume
 		
 		#creating seek slider
 		seekSlider = QSlider()
@@ -102,11 +105,15 @@ class MainWindow(QMainWindow):
 		playBtn.clicked.connect(self.playHandler)
 		pauseBtn.clicked.connect(self.pauseHandler)
 		stopBtn.clicked.connect(self.stopHandler)
+		volumeDescBtn.clicked.connect(self.decreaseVolume)
+		volumeIncBtn.clicked.connect(self.increaseVolume)
 		
 		#Adding to the horizontal layout
+		controls.addWidget(volumeDescBtn)
 		controls.addWidget(playBtn)
 		controls.addWidget(pauseBtn)
 		controls.addWidget(stopBtn)
+		controls.addWidget(volumeIncBtn)
 		
 		#Adding to the vertical layout
 		controlArea.addLayout(seekSliderLayout)
@@ -115,7 +122,7 @@ class MainWindow(QMainWindow):
 	
 	def playHandler(self):
 		self.userAction = 1
-		print('playHandler')
+		#print('playHandler')
 		if self.player.state() == QMediaPlayer.StoppedState :
 			if self.player.mediaStatus() == QMediaPlayer.NoMedia:
 				self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.currentFile)))
@@ -123,10 +130,9 @@ class MainWindow(QMainWindow):
 				self.player.play()
 			elif self.player.mediaStatus() == QMediaPlayer.BufferedMedia:
 				self.player.play()
-			self.player.setVolume(60)
-		if self.player.state() == QMediaPlayer.PlayingState:
+		elif self.player.state() == QMediaPlayer.PlayingState:
 			pass
-		if self.player.state() == QMediaPlayer.PausedState:
+		elif self.player.state() == QMediaPlayer.PausedState:
 			self.player.play()
 			
 	def pauseHandler(self):
@@ -159,7 +165,7 @@ class MainWindow(QMainWindow):
 		self.player.setVolume(40)
 		
 	def qmp_mediaStatusChanged(self):
-		print('media status changed signal catched, signal was : ',self.player.mediaStatus())
+		#print('media status changed signal catched, signal was : ',self.player.mediaStatus())
 		if self.player.mediaStatus() == QMediaPlayer.LoadedMedia and self.userAction == 1:
 			durationT = self.player.duration()
 			self.centralWidget().layout().itemAt(0).layout().itemAt(1).widget().setRange(0,durationT)
@@ -173,7 +179,7 @@ class MainWindow(QMainWindow):
 			self.player.stop()
 			
 	def qmp_positionChanged(self, position,senderType=False):
-		print('QMediaPlayer position changed, new position :', position)
+		#print('QMediaPlayer position changed, new position :', position)
 		#update the position of the seek slider
 		sliderLayout = self.centralWidget().layout().itemAt(0).layout()
 		if senderType == False:
@@ -184,11 +190,21 @@ class MainWindow(QMainWindow):
 	def seekPosition(self, position,isQMP=1):
 		print(position)
 		sender = self.sender()
-		print('type of sender : ',type(sender))
+		#print('type of sender : ',type(sender))
 		if isinstance(sender,QSlider):
 			if self.player.isSeekable():
 				self.player.setPosition(position)
 				#self.qmp_positionChanged(position,True)
+				
+	def increaseVolume(self):
+		vol = self.player.volume()
+		vol = min(vol+5,100)
+		self.player.setVolume(vol)
+		
+	def decreaseVolume(self):
+		vol = self.player.volume()
+		vol = max(vol-5,0)
+		self.player.setVolume(vol)
 	
 	def fileOpen(self):
 		pass
