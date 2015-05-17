@@ -85,7 +85,10 @@ class MainWindow(QMainWindow):
 		seekSlider.setMinimum(0)
 		seekSlider.setMaximum(100)
 		seekSlider.setOrientation(Qt.Horizontal)
+		seekSlider.setTracking(False)
 		seekSlider.sliderMoved.connect(self.seekPosition)
+		#seekSlider.valueChanged.connect(self.seekPosition)
+		
 		seekSliderLabel1 = QLabel('0.00')
 		seekSliderLabel2 = QLabel('0.00')
 		seekSliderLayout = QHBoxLayout()
@@ -159,6 +162,7 @@ class MainWindow(QMainWindow):
 		print('media status changed signal catched, signal was : ',self.player.mediaStatus())
 		if self.player.mediaStatus() == QMediaPlayer.LoadedMedia and self.userAction == 1:
 			durationT = self.player.duration()
+			self.centralWidget().layout().itemAt(0).layout().itemAt(1).widget().setRange(0,durationT)
 			self.centralWidget().layout().itemAt(0).layout().itemAt(2).widget().setText('%d:%02d'%(int(durationT/60000),int((durationT/1000)%60)))
 			self.player.play()
 			
@@ -168,19 +172,23 @@ class MainWindow(QMainWindow):
 		if self.player.state() == QMediaPlayer.StoppedState:
 			self.player.stop()
 			
-	def qmp_positionChanged(self, position):
-		print('QMediaPlayer position changed')
+	def qmp_positionChanged(self, position,senderType=False):
+		print('QMediaPlayer position changed, new position :', position)
 		#update the position of the seek slider
 		sliderLayout = self.centralWidget().layout().itemAt(0).layout()
-		
-		sliderLayout.itemAt(1).widget().setValue((position/self.player.duration())*100)
+		if senderType == False:
+			sliderLayout.itemAt(1).widget().setValue(position)
 		#update the text label
 		sliderLayout.itemAt(0).widget().setText('%d:%02d'%(int(position/60000),int((position/1000)%60)))
 	
-	def seekPosition(self, position):
+	def seekPosition(self, position,isQMP=1):
 		print(position)
-		if self.player.isSeekable():
-			self.player.setPosition(position * self.player.duration()/100)
+		sender = self.sender()
+		print('type of sender : ',type(sender))
+		if isinstance(sender,QSlider):
+			if self.player.isSeekable():
+				self.player.setPosition(position)
+				#self.qmp_positionChanged(position,True)
 	
 	def fileOpen(self):
 		pass
