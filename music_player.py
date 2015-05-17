@@ -18,7 +18,10 @@ class MainWindow(QMainWindow):
 		self.player.mediaStatusChanged.connect(self.qmp_mediaStatusChanged)
 		self.player.stateChanged.connect(self.qmp_stateChanged)
 		self.player.positionChanged.connect(self.qmp_positionChanged)
+		self.player.volumeChanged.connect(self.qmp_volumeChanged)
 		self.player.setVolume(60)
+		#Add Status bar
+		self.statusBar().showMessage('No Media :: %d'%self.player.volume())
 		self.homeScreen()
 		
 	def homeScreen(self):
@@ -42,9 +45,6 @@ class MainWindow(QMainWindow):
 		centralWidget = QWidget()
 		centralWidget.setLayout(controlBar)
 		self.setCentralWidget(centralWidget)
-		
-		#Add Status bar
-		self.statusBar().showMessage('Ready')
 		
 		#Set Dimensions of the MainWindow
 		self.resize(400,300)
@@ -123,6 +123,7 @@ class MainWindow(QMainWindow):
 	def playHandler(self):
 		self.userAction = 1
 		#print('playHandler')
+		self.statusBar().showMessage('Playing %s at Volume %d'%(self.player.metaData(QMediaMetaData.Title),self.player.volume()))
 		if self.player.state() == QMediaPlayer.StoppedState :
 			if self.player.mediaStatus() == QMediaPlayer.NoMedia:
 				self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.currentFile)))
@@ -138,11 +139,16 @@ class MainWindow(QMainWindow):
 	def pauseHandler(self):
 		self.userAction = 2
 		print('pauseHandler')
+		self.statusBar().showMessage('Paused %s at position %s at Volume %d'%\
+			(self.player.metaData(QMediaMetaData.Title),\
+				self.centralWidget().layout().itemAt(0).layout().itemAt(0).widget().text(),\
+					self.player.volume()))
 		self.player.pause()
 			
 	def stopHandler(self):
 		self.userAction = 0
 		print('stopHandler')
+		self.statusBar().showMessage('Stopped at Volume %d'%(self.player.volume()))
 		if self.player.state() == QMediaPlayer.PlayingState:
 			print('already playing, so stopping')
 			self.stopState = True
@@ -195,6 +201,13 @@ class MainWindow(QMainWindow):
 			if self.player.isSeekable():
 				self.player.setPosition(position)
 				#self.qmp_positionChanged(position,True)
+				
+	def qmp_volumeChanged(self):
+		print('volumeChanged')
+		msg = self.statusBar().currentMessage()
+		msg = msg[:-2] + str(self.player.volume())
+		self.statusBar().showMessage(msg)
+		
 				
 	def increaseVolume(self):
 		vol = self.player.volume()
