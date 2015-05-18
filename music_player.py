@@ -4,6 +4,7 @@ Documentation, License etc.
 @package music_player
 '''
 import sys
+from os.path import expanduser
 from PyQt5.QtWidgets import *
 from PyQt5.QtMultimedia import *
 from PyQt5.QtCore import *
@@ -123,7 +124,7 @@ class MainWindow(QMainWindow):
 	def playHandler(self):
 		self.userAction = 1
 		#print('playHandler')
-		self.statusBar().showMessage('Playing %s at Volume %d'%(self.player.metaData(QMediaMetaData.Title),self.player.volume()))
+		self.statusBar().showMessage('Playing at Volume %d'%self.player.volume())
 		if self.player.state() == QMediaPlayer.StoppedState :
 			if self.player.mediaStatus() == QMediaPlayer.NoMedia:
 				self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.currentFile)))
@@ -171,7 +172,6 @@ class MainWindow(QMainWindow):
 		self.player.setVolume(40)
 		
 	def qmp_mediaStatusChanged(self):
-		#print('media status changed signal catched, signal was : ',self.player.mediaStatus())
 		if self.player.mediaStatus() == QMediaPlayer.LoadedMedia and self.userAction == 1:
 			durationT = self.player.duration()
 			self.centralWidget().layout().itemAt(0).layout().itemAt(1).widget().setRange(0,durationT)
@@ -185,8 +185,6 @@ class MainWindow(QMainWindow):
 			self.player.stop()
 			
 	def qmp_positionChanged(self, position,senderType=False):
-		#print('QMediaPlayer position changed, new position :', position)
-		#update the position of the seek slider
 		sliderLayout = self.centralWidget().layout().itemAt(0).layout()
 		if senderType == False:
 			sliderLayout.itemAt(1).widget().setValue(position)
@@ -208,7 +206,6 @@ class MainWindow(QMainWindow):
 		msg = msg[:-2] + str(self.player.volume())
 		self.statusBar().showMessage(msg)
 		
-				
 	def increaseVolume(self):
 		vol = self.player.volume()
 		vol = min(vol+5,100)
@@ -220,9 +217,17 @@ class MainWindow(QMainWindow):
 		self.player.setVolume(vol)
 	
 	def fileOpen(self):
-		pass
-		#fileAc = QAction('Open File',self)
-		#fileAc.setShortcut('Ctrl+O')
+		fileAc = QAction('Open File',self)
+		fileAc.setShortcut('Ctrl+O')
+		fileAc.setStatusTip('Open File')
+		fileAc.triggered.connect(self.openFile)
+		return fileAc
+		
+	def openFile(self):
+		fileChoosen = QFileDialog.getOpenFileName(self,'Open Music File',expanduser('~'),'*.mp3 *.ogg *.wav')
+		print(fileChoosen)
+		if fileChoosen != None:
+			self.currentFile = fileChoosen[0]
 	
 	def folderOpen(self):
 		pass
