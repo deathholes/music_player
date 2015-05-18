@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
 		self.setCentralWidget(centralWidget)
 		
 		#Set Dimensions of the MainWindow
-		self.resize(400,300)
+		self.resize(200,100)
 		
 		#show everything.
 		self.show()
@@ -233,16 +233,14 @@ class MainWindow(QMainWindow):
 	
 	def displaySongInfo(self):
 		metaDataKeyList = self.player.availableMetaData()
-		# find a way to show it properly. maybe QMainWindow again?
-		fullText = ''
+		fullText = '<table class="tftable" border="0">'
 		for key in metaDataKeyList:
 			value = self.player.metaData(key)
-			fullText = fullText + key + '\t::\t' + str(value) + '\n'
-			#fulltext += value
-			#fulltext += '\n'
+			fullText = fullText + '<tr><td>' + key + '</td><td>' + str(value) + '</td></tr>'
+		fullText = fullText + '</table>'
 		infoBox = QMessageBox(self)
 		infoBox.setWindowTitle('Detailed Song Information')
-		infoBox.setTextFormat(Qt.PlainText)
+		infoBox.setTextFormat(Qt.RichText)
 		infoBox.setText(fullText)
 		print(fullText)
 		infoBox.addButton('OK',QMessageBox.AcceptRole)
