@@ -58,19 +58,13 @@ class MainWindow(QMainWindow):
 		menubar = self.menuBar()
 		filemenu = menubar.addMenu('File')
 		filemenu.addAction(self.fileOpen())
+		filemenu.addAction(self.songInfo())
 		filemenu.addAction(self.folderOpen())
 		filemenu.addAction(self.exitAction())
 		
-	
 	def createToolbar(self):
 		pass
 	
-	def createInfoScreen(self):
-		#it will be new window with all information about the song being played.
-		#the shortcut will be Ctrl+I
-		infoS = QLabel('Info',self)
-		return infoS
-		
 	def addControls(self):
 		print('addControls')
 		#Creating layouts
@@ -178,7 +172,6 @@ class MainWindow(QMainWindow):
 			self.centralWidget().layout().itemAt(0).layout().itemAt(2).widget().setText('%d:%02d'%(int(durationT/60000),int((durationT/1000)%60)))
 			self.player.play()
 			
-	
 	def qmp_stateChanged(self):
 		print('QMediaPlayer state changed, new state :',self.player.state())
 		if self.player.state() == QMediaPlayer.StoppedState:
@@ -191,14 +184,13 @@ class MainWindow(QMainWindow):
 		#update the text label
 		sliderLayout.itemAt(0).widget().setText('%d:%02d'%(int(position/60000),int((position/1000)%60)))
 	
-	def seekPosition(self, position,isQMP=1):
+	def seekPosition(self, position):
 		print(position)
 		sender = self.sender()
 		#print('type of sender : ',type(sender))
 		if isinstance(sender,QSlider):
 			if self.player.isSeekable():
 				self.player.setPosition(position)
-				#self.qmp_positionChanged(position,True)
 				
 	def qmp_volumeChanged(self):
 		print('volumeChanged')
@@ -231,7 +223,30 @@ class MainWindow(QMainWindow):
 	
 	def folderOpen(self):
 		pass
-		#folderAc = QAction('Open Folder',self)
+	
+	def songInfo(self):
+		infoAc = QAction('Info',self)
+		infoAc.setShortcut('Ctrl+I')
+		infoAc.setStatusTip('Displays Current Song Information')
+		infoAc.triggered.connect(self.displaySongInfo)
+		return infoAc
+	
+	def displaySongInfo(self):
+		metaDataKeyList = self.player.availableMetaData()
+		# find a way to show it properly. maybe QMainWindow again?
+		fullText = ''
+		for key in metaDataKeyList:
+			value = self.player.metaData(key)
+			fullText = fullText + key + '\t::\t' + str(value) + '\n'
+			#fulltext += value
+			#fulltext += '\n'
+		infoBox = QMessageBox(self)
+		infoBox.setWindowTitle('Detailed Song Information')
+		infoBox.setTextFormat(Qt.PlainText)
+		infoBox.setText(fullText)
+		print(fullText)
+		infoBox.addButton('OK',QMessageBox.AcceptRole)
+		infoBox.show()
 	
 	def exitAction(self):
 		exitAc = QAction('&Exit',self)
