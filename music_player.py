@@ -65,7 +65,6 @@ class MainWindow(QMainWindow):
 		pass
 	
 	def addControls(self):
-		#Creating layouts
 		controlArea = QVBoxLayout()		#centralWidget
 		seekSliderLayout = QHBoxLayout()
 		controls = QHBoxLayout()
@@ -129,7 +128,11 @@ class MainWindow(QMainWindow):
 		if self.player.state() == QMediaPlayer.StoppedState :
 			if self.player.mediaStatus() == QMediaPlayer.NoMedia:
 				#self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.currentFile)))
-				self.player.setPlaylist(self.currentPlaylist)
+				print(self.currentPlaylist.mediaCount())
+				if self.currentPlaylist.mediaCount() == 0:
+					self.openFile()
+				if self.currentPlaylist.mediaCount() != 0:
+					self.player.setPlaylist(self.currentPlaylist)
 			elif self.player.mediaStatus() == QMediaPlayer.LoadedMedia:
 				self.player.play()
 			elif self.player.mediaStatus() == QMediaPlayer.BufferedMedia:
@@ -205,13 +208,31 @@ class MainWindow(QMainWindow):
 		return fileAc
 		
 	def openFile(self):
-		fileChoosen = QFileDialog.getOpenFileName(self,'Open Music File',expanduser('~'),'*.mp3 *.ogg *.wav')
+		fileChoosen = QFileDialog.getOpenFileUrl(self,'Open Music File', expanduser('~'),'Audio (*.mp3 *.ogg *.wav)','*.mp3 *.ogg *.wav')
 		if fileChoosen != None:
-			self.currentPlaylist.addMedia(QMediaContent(QUrl.fromLocalFile(fileChoosen[0])))
+			self.currentPlaylist.addMedia(QMediaContent(fileChoosen[0]))
 	
 	def folderOpen(self):
-		pass
+		folderAc = QAction('Open Folder',self)
+		folderAc.setShortcut('Ctrl+D')
+		folderAc.setStatusTip('Open Folder (Will add all the files in the folder) ')
+		folderAc.triggered.connect(self.addFiles)
+		return folderAc
 	
+	def addFiles(self):
+		folderChoosen = QFileDialog.getExistingDirectory(self,'Open Music Folder', expanduser('~'))
+		if folderChoosen != None:
+			it = QDirIterator(folderChoosen)
+			it.next()
+			while it.hasNext():
+				if it.fileInfo().isDir() == False and it.filePath() != '.':
+					fInfo = it.fileInfo()
+					print(it.filePath(),fInfo.suffix())
+					if fInfo.suffix() in ('mp3','ogg','wav'):
+						print('added file ',fInfo.fileName())
+						self.currentPlaylist.addMedia(QMediaContent(QUrl.fromLocalFile(it.filePath())))
+				it.next()
+			
 	def songInfo(self):
 		infoAc = QAction('Info',self)
 		infoAc.setShortcut('Ctrl+I')
