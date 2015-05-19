@@ -10,4 +10,5 @@ What is working:
 6) Progressbar of the song
 7) Seek control over the progressbar
 8) current song's elapsed time and total time
-9) Show current song's information (not in good UI)
+9) Show current song's information
+10)Added Playlist support

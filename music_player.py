@@ -13,7 +13,8 @@ class MainWindow(QMainWindow):
 	def __init__(self):
 		super().__init__()
 	
-		self.currentFile = '/'
+		#self.currentFile = '/'
+		self.currentPlaylist = QMediaPlaylist()
 		self.player = QMediaPlayer()
 		self.userAction = -1			#0- stopped, 1- playing 2-paused
 		self.player.mediaStatusChanged.connect(self.qmp_mediaStatusChanged)
@@ -26,7 +27,6 @@ class MainWindow(QMainWindow):
 		self.homeScreen()
 		
 	def homeScreen(self):
-		print('homeScreen')
 		#Set title of the MainWindow
 		self.setWindowTitle('Music Player by deathholes')
 		
@@ -54,7 +54,6 @@ class MainWindow(QMainWindow):
 		self.show()
 		
 	def createMenubar(self):
-		print('createMenubar')
 		menubar = self.menuBar()
 		filemenu = menubar.addMenu('File')
 		filemenu.addAction(self.fileOpen())
@@ -66,10 +65,11 @@ class MainWindow(QMainWindow):
 		pass
 	
 	def addControls(self):
-		print('addControls')
 		#Creating layouts
 		controlArea = QVBoxLayout()		#centralWidget
+		seekSliderLayout = QHBoxLayout()
 		controls = QHBoxLayout()
+		playlistCtrlLayout = QHBoxLayout()
 		
 		#creating buttons
 		playBtn = QPushButton('Play')		#play button
@@ -77,6 +77,10 @@ class MainWindow(QMainWindow):
 		stopBtn = QPushButton('Stop')		#stop button
 		volumeDescBtn = QPushButton('V (-)')#Decrease Volume
 		volumeIncBtn = QPushButton('V (+)')	#Increase Volume
+		
+		#creating playlist controls
+		prevBtn = QPushButton('Prev Song')
+		nextBtn = QPushButton('Next Song')
 		
 		#creating seek slider
 		seekSlider = QSlider()
@@ -89,12 +93,9 @@ class MainWindow(QMainWindow):
 		
 		seekSliderLabel1 = QLabel('0.00')
 		seekSliderLabel2 = QLabel('0.00')
-		seekSliderLayout = QHBoxLayout()
 		seekSliderLayout.addWidget(seekSliderLabel1)
 		seekSliderLayout.addWidget(seekSlider)
 		seekSliderLayout.addWidget(seekSliderLabel2)
-		
-		self.currentFile = '/home/deathholes/Music/jiya_jale.mp3'
 		
 		#Add handler for each button. Not using the default slots.
 		playBtn.clicked.connect(self.playHandler)
@@ -110,18 +111,25 @@ class MainWindow(QMainWindow):
 		controls.addWidget(stopBtn)
 		controls.addWidget(volumeIncBtn)
 		
+		#playlist control button handlers
+		prevBtn.clicked.connect(self.prevItemPlaylist)
+		nextBtn.clicked.connect(self.nextItemPlaylist)
+		playlistCtrlLayout.addWidget(prevBtn)
+		playlistCtrlLayout.addWidget(nextBtn)
+		
 		#Adding to the vertical layout
 		controlArea.addLayout(seekSliderLayout)
 		controlArea.addLayout(controls)
+		controlArea.addLayout(playlistCtrlLayout)
 		return controlArea
 	
 	def playHandler(self):
 		self.userAction = 1
-		#print('playHandler')
 		self.statusBar().showMessage('Playing at Volume %d'%self.player.volume())
 		if self.player.state() == QMediaPlayer.StoppedState :
 			if self.player.mediaStatus() == QMediaPlayer.NoMedia:
-				self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.currentFile)))
+				#self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.currentFile)))
+				self.player.setPlaylist(self.currentPlaylist)
 			elif self.player.mediaStatus() == QMediaPlayer.LoadedMedia:
 				self.player.play()
 			elif self.player.mediaStatus() == QMediaPlayer.BufferedMedia:
@@ -133,7 +141,6 @@ class MainWindow(QMainWindow):
 			
 	def pauseHandler(self):
 		self.userAction = 2
-		print('pauseHandler')
 		self.statusBar().showMessage('Paused %s at position %s at Volume %d'%\
 			(self.player.metaData(QMediaMetaData.Title),\
 				self.centralWidget().layout().itemAt(0).layout().itemAt(0).widget().text(),\
@@ -142,28 +149,14 @@ class MainWindow(QMainWindow):
 			
 	def stopHandler(self):
 		self.userAction = 0
-		print('stopHandler')
 		self.statusBar().showMessage('Stopped at Volume %d'%(self.player.volume()))
 		if self.player.state() == QMediaPlayer.PlayingState:
-			print('already playing, so stopping')
 			self.stopState = True
 			self.player.stop()
-			print('player stopped')
 		elif self.player.state() == QMediaPlayer.PausedState:
-			print('in pause state')
 			self.player.stop()
-			print('player stopped from paused state')
 		elif self.player.state() == QMediaPlayer.StoppedState:
-			print('already in stopped state')
-			
-	def playFile(self):
-		print('playFile')
-		self.loadFile()
-	
-	def loadFile(self):
-		print('loadFile')
-		self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.currentFile)))
-		self.player.setVolume(40)
+			pass
 		
 	def qmp_mediaStatusChanged(self):
 		if self.player.mediaStatus() == QMediaPlayer.LoadedMedia and self.userAction == 1:
@@ -173,7 +166,6 @@ class MainWindow(QMainWindow):
 			self.player.play()
 			
 	def qmp_stateChanged(self):
-		print('QMediaPlayer state changed, new state :',self.player.state())
 		if self.player.state() == QMediaPlayer.StoppedState:
 			self.player.stop()
 			
@@ -185,15 +177,12 @@ class MainWindow(QMainWindow):
 		sliderLayout.itemAt(0).widget().setText('%d:%02d'%(int(position/60000),int((position/1000)%60)))
 	
 	def seekPosition(self, position):
-		print(position)
 		sender = self.sender()
-		#print('type of sender : ',type(sender))
 		if isinstance(sender,QSlider):
 			if self.player.isSeekable():
 				self.player.setPosition(position)
 				
 	def qmp_volumeChanged(self):
-		print('volumeChanged')
 		msg = self.statusBar().currentMessage()
 		msg = msg[:-2] + str(self.player.volume())
 		self.statusBar().showMessage(msg)
@@ -217,9 +206,8 @@ class MainWindow(QMainWindow):
 		
 	def openFile(self):
 		fileChoosen = QFileDialog.getOpenFileName(self,'Open Music File',expanduser('~'),'*.mp3 *.ogg *.wav')
-		print(fileChoosen)
 		if fileChoosen != None:
-			self.currentFile = fileChoosen[0]
+			self.currentPlaylist.addMedia(QMediaContent(QUrl.fromLocalFile(fileChoosen[0])))
 	
 	def folderOpen(self):
 		pass
@@ -242,9 +230,14 @@ class MainWindow(QMainWindow):
 		infoBox.setWindowTitle('Detailed Song Information')
 		infoBox.setTextFormat(Qt.RichText)
 		infoBox.setText(fullText)
-		print(fullText)
 		infoBox.addButton('OK',QMessageBox.AcceptRole)
 		infoBox.show()
+	
+	def prevItemPlaylist(self):
+		self.player.playlist().previous()
+	
+	def nextItemPlaylist(self):
+		self.player.playlist().next()
 	
 	def exitAction(self):
 		exitAc = QAction('&Exit',self)
